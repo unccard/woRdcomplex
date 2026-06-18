@@ -1,12 +1,14 @@
-# woRdcomplex version 3.1 (30 January 2023)--an R software script for text analysis, including
+# woRdcomplex version 3.2 (18 June 2026)--an R software script for text analysis, including
 # automated phonetic transcription analysis in v2.1 by Lindsay Greene, adapted from v1.1 by Kevin T. Cunningham. 
 # Copyright (C) 2021. Lindsay Greene
-# Modifications 30 January 2023 integrating code from Cunningham and Haley "WIM" which includes Shannon entropy 
+
+# Modifications 30 January 2023 integrating code from Cunningham and Haley (2020) "WIM" which includes Shannon entropy 
 # and MATTR-5 metrics from connected speech input
 
+# Modifications 18 June 2026 Added functionality to select folder and to hard code dependent files relative 
+# to script path. fixed version numbering
+
 # This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation. AMDG. 
-# Script calculates the edit distance ratio for intelligible words in a sample. 
-# Requires that the user specify a file path on line 19.  
 
 library(tidyr)
 library(tidytext)
@@ -14,32 +16,35 @@ library(stringr)
 library(dplyr)
 library(rJava)
 library(qdap, include.only=c("diversity", "automated_readability_index", "coleman_liau", "flesch_kincaid"))  # readability functions 
-source("functions.R")
+
+# Folder this script itself lives in - functions.R and the word database live
+# alongside it, so this lets them be found no matter what R's working
+# directory happens to be. Requires this script to be saved to disk and be
+# the active tab in the RStudio source editor when you run it.
+# Alternative if that's not reliable for you: scriptDir <- rstudioapi::selectDirectory("Choose the woRdcomplex folder")
+scriptDir <- dirname(rstudioapi::getSourceEditorContext()$path)
+
+source(file.path(scriptDir, "functions.R"))
 
 # adding for the purpose of MATTR calculations
 
 #Simple script to calculate the moving-average type-token ratio for all text files in a directory. Outputs a single CSV file with filename 
 #  Michalke, M. (2018). koRpus: An R Package for Text Analysis (Version 0.11-5). Available from https://reaktanz.de/?c=hacking&s=koRpus
 library(koRpus)
+
 #Set language to English for koRpus. Please see package documentation for further information (?koRpus)
 set.kRp.env(lang="en")
 koRpus.lang.en::lang.support.en()
 
-word_db <- read.csv('UNCWordDB-2022-02-07.csv', na.strings=c("", "NA"))
+word_db <- read.csv(file.path(scriptDir, "UNCWordDB-2022-02-07.csv"), na.strings=c("", "NA"))
+
 tibbletest <-tibble(word_db$Word, word_db$KlatteseSyll, word_db$KlatteseBare, word_db$Zipf.value)  # isolate categories from word_db 
 
-# TO DO: fill in arguments of data.path with path to directory containing .txt files, leaving first argument blank 
-# for example: /Users/folder1/folder2 -> data_path("", "Users", "folder1", "folder2")
-#data_path <- file.path("", "Users", "lindsaygreene", "Desktop", "temp")
+data_path <- rstudioapi::selectDirectory("Choose your data folder")  # pops up a folder browser - needs RStudio
+# Alternative if you'd rather paste the path directly: use forward slashes, even on
+# Windows, e.g. dataDir <- "C:/Users/you/OneDrive - University/Aphasia Study/CSVs"
 
-#data_path <- "/Users/jacksa/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Documents - CARD/Cinderella/Transcripts/ABControlTranscripts"
-#data_path <- "/Users/jacksa/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Documents - CARD/Cinderella/Transcripts/StrokeTranscripts/ReviewedUpdatedPreTxCinderellas/test"
-#data_path <- "/Users/jacksa/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Documents - CARD/Cinderella/Transcripts/PPA cinderella transcripts UNM"
-#data_path <- "/Users/jacksa/Documents/github/woRdcomplex-2.1"
-
-data_path <- "C:/Users/jacksa/OneDrive - University of North Carolina at Chapel Hill/Documents - CARD/General/Dementia/PittSelected/PittSelCont"
-
-files <- list.files(path=data_path, pattern="*.txt")
+files <- dir(path = data_path, pattern = "\\.txt$", full.names = TRUE)
 
 # create data frames to store results 
 data <- createAverageDF()
@@ -49,8 +54,8 @@ wbw_row = 1  # track row of wbw output, important for when we have multiple file
 
 for (file in 1:length(files)){
   
-  fileName <- files[file]
-  filePath <- paste(data_path, "/", fileName, sep="")  # update file name to absolute path 
+  filePath <- files[file]              # already a full path, since files was built with full.names = TRUE
+  fileName <- basename(filePath)       # bare filename, used just for labeling output rows
   
   # read and store text from file
   sample <- readInSample(filePath)
