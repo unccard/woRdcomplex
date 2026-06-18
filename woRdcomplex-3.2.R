@@ -36,7 +36,7 @@ library(koRpus)
 set.kRp.env(lang="en")
 koRpus.lang.en::lang.support.en()
 
-word_db <- read.csv(file.path(scriptDir, "UNCWordDB-2022-02-07.csv"), na.strings=c("", "NA"))
+word_db <- read.csv(file.path(scriptDir, "UNCWordDB-2022-07-29.csv"), na.strings=c("", "NA"))
 
 tibbletest <-tibble(word_db$Word, word_db$KlatteseSyll, word_db$KlatteseBare, word_db$Zipf.value)  # isolate categories from word_db 
 
